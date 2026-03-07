@@ -11,27 +11,19 @@ export default function Component({ service }) {
   const { widget } = service;
 
   const { data: transferData, error: transferError } = useWidgetAPI(widget, "transfer");
-  const { data: totalCountData, error: totalCountError } = useWidgetAPI(widget, "torrentCount");
-  const { data: completedCountData, error: completedCountError } = useWidgetAPI(widget, "torrentCount", {
+  const { data: leechTorrentData, error: leechTorrentError } = useWidgetAPI(widget, "torrents", {
+    filter: "downloading",
+  });
+  const { data: seedTorrentData, error: seedTorrentError } = useWidgetAPI(widget, "torrents", {
     filter: "completed",
   });
-  const { data: leechTorrentData, error: leechTorrentError } = useWidgetAPI(
-    widget,
-    widget?.enableLeechProgress ? "torrents" : "",
-    widget?.enableLeechProgress ? { filter: "downloading" } : undefined,
-  );
 
-  const apiError = transferError || totalCountError || completedCountError || leechTorrentError;
+  const apiError = transferError || leechTorrentError || seedTorrentError;
   if (apiError) {
     return <Container service={service} error={apiError} />;
   }
 
-  if (
-    !transferData ||
-    totalCountData === undefined ||
-    completedCountData === undefined ||
-    (widget?.enableLeechProgress && !leechTorrentData)
-  ) {
+  if (!transferData || !leechTorrentData || !seedTorrentData) {
     return (
       <Container service={service}>
         <Block label="qbittorrent.leech" />
@@ -44,13 +36,10 @@ export default function Component({ service }) {
 
   const rateDl = Number(transferData?.dl_info_speed ?? 0);
   const rateUl = Number(transferData?.up_info_speed ?? 0);
-  const totalCount = Number(totalCountData?.all ?? totalCountData?.count ?? totalCountData ?? 0);
-  const completedCount = Number(
-    completedCountData?.completed ?? completedCountData?.count ?? completedCountData?.all ?? completedCountData ?? 0,
-  );
-  const leech = Math.max(0, totalCount - completedCount);
+  const leech = Array.isArray(leechTorrentData) ? leechTorrentData.length : 0;
+  const seed = Array.isArray(seedTorrentData) ? seedTorrentData.length : 0;
 
-  const leechTorrents = Array.isArray(leechTorrentData) ? [...leechTorrentData] : [];
+  const leechTorrents = widget?.enableLeechProgress && Array.isArray(leechTorrentData) ? [...leechTorrentData] : [];
   const statePriority = [
     "downloading",
     "forcedDL",
@@ -75,7 +64,7 @@ export default function Component({ service }) {
       <Container service={service}>
         <Block label="qbittorrent.leech" value={t("common.number", { value: leech })} />
         <Block label="qbittorrent.download" value={t("common.bibyterate", { value: rateDl, decimals: 1 })} />
-        <Block label="qbittorrent.seed" value={t("common.number", { value: completedCount })} />
+        <Block label="qbittorrent.seed" value={t("common.number", { value: seed })} />
         <Block label="qbittorrent.upload" value={t("common.bibyterate", { value: rateUl, decimals: 1 })} />
       </Container>
       {widget?.enableLeechProgress &&

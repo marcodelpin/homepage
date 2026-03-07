@@ -39,12 +39,6 @@ describe("widgets/qbittorrent/component", () => {
       if (endpoint === "transfer") {
         return { data: { dl_info_speed: 15, up_info_speed: 3 }, error: undefined };
       }
-      if (endpoint === "torrentCount" && !query) {
-        return { data: 2, error: undefined };
-      }
-      if (endpoint === "torrentCount" && query?.filter === "completed") {
-        return { data: 1, error: undefined };
-      }
       if (endpoint === "torrents" && query?.filter === "downloading") {
         return {
           data: [
@@ -57,6 +51,12 @@ describe("widgets/qbittorrent/component", () => {
               amount_left: 50,
             },
           ],
+          error: undefined,
+        };
+      }
+      if (endpoint === "torrents" && query?.filter === "completed") {
+        return {
+          data: [{ name: "A", progress: 1, state: "uploading" }],
           error: undefined,
         };
       }
