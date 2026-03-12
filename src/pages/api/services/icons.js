@@ -70,7 +70,7 @@ async function loadSource(sourceKey) {
 }
 
 export default async function handler(req, res) {
-  const { source = "dashboard", search = "", limit = "50" } = req.query;
+  const { source = "dashboard", search = "", limit = "50", offset = "0" } = req.query;
 
   if (!SOURCES[source]) {
     return res.status(400).json({ error: `Unknown source "${source}". Valid: ${Object.keys(SOURCES).join(", ")}` });
@@ -84,8 +84,9 @@ export default async function handler(req, res) {
       icons = icons.filter((i) => i.name.toLowerCase().includes(q));
     }
 
+    const start = Math.max(parseInt(offset, 10) || 0, 0);
     const maxItems = Math.min(parseInt(limit, 10) || 50, 200);
-    res.status(200).json({ icons: icons.slice(0, maxItems), total: icons.length });
+    res.status(200).json({ icons: icons.slice(start, start + maxItems), total: icons.length, offset: start });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -16,12 +16,15 @@ function useDebounce(value, delay) {
   return debounced;
 }
 
+const PAGE_SIZE = 60;
+
 export default function IconPicker({ onSelect, onClose }) {
   const [activeSource, setActiveSource] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [icons, setIcons] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const debouncedSearch = useDebounce(search, 300);
   const inputRef = useRef(null);
@@ -30,10 +33,12 @@ export default function IconPicker({ onSelect, onClose }) {
     if (inputRef.current) inputRef.current.focus();
   }, []);
 
+  // Reset + fetch first page on source/search change
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`/api/services/icons?source=${activeSource}&search=${encodeURIComponent(debouncedSearch)}&limit=60`)
+    setIcons([]);
+    fetch(`/api/services/icons?source=${activeSource}&search=${encodeURIComponent(debouncedSearch)}&limit=${PAGE_SIZE}&offset=0`)
       .then((r) => r.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
@@ -43,6 +48,20 @@ export default function IconPicker({ onSelect, onClose }) {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [activeSource, debouncedSearch]);
+
+  function loadMore() {
+    setLoadingMore(true);
+    fetch(`/api/services/icons?source=${activeSource}&search=${encodeURIComponent(debouncedSearch)}&limit=${PAGE_SIZE}&offset=${icons.length}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+        setIcons((prev) => [...prev, ...(data.icons || [])]);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoadingMore(false));
+  }
+
+  const hasMore = icons.length < total;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" onClick={onClose}>
@@ -112,28 +131,40 @@ export default function IconPicker({ onSelect, onClose }) {
             <div className="flex items-center justify-center h-32 text-theme-400 text-sm">No icons found</div>
           )}
           {!loading && !error && icons.length > 0 && (
-            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
-              {icons.map((icon) => (
+            <>
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                {icons.map((icon) => (
+                  <button
+                    key={icon.value}
+                    type="button"
+                    title={icon.name}
+                    onClick={() => { onSelect(icon.value); onClose(); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-theme-300/50 dark:hover:bg-theme-600/50 transition-colors group"
+                  >
+                    <img
+                      src={icon.preview}
+                      alt={icon.name}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => { e.target.style.opacity = "0.3"; }}
+                      loading="lazy"
+                    />
+                    <span className="text-[9px] text-theme-500 dark:text-theme-400 truncate w-full text-center leading-tight">
+                      {icon.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {hasMore && (
                 <button
-                  key={icon.value}
                   type="button"
-                  title={icon.name}
-                  onClick={() => { onSelect(icon.value); onClose(); }}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-theme-300/50 dark:hover:bg-theme-600/50 transition-colors group"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="mt-3 w-full py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-theme-200 dark:bg-theme-700 rounded-lg hover:bg-theme-300 dark:hover:bg-theme-600 transition-colors disabled:opacity-50"
                 >
-                  <img
-                    src={icon.preview}
-                    alt={icon.name}
-                    className="w-8 h-8 object-contain"
-                    onError={(e) => { e.target.style.opacity = "0.3"; }}
-                    loading="lazy"
-                  />
-                  <span className="text-[9px] text-theme-500 dark:text-theme-400 truncate w-full text-center leading-tight">
-                    {icon.name}
-                  </span>
+                  {loadingMore ? "Loading..." : `Load more (${icons.length} / ${total})`}
                 </button>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 
