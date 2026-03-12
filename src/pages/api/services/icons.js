@@ -12,9 +12,9 @@ const SOURCES = {
   selfhst: {
     repo: "selfhst/icons",
     branch: "main",
-    subdir: "svg/color",
+    subdir: "svg",
     ext: ".svg",
-    cdnBase: "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/color/",
+    cdnBase: "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/",
   },
   mdi: {
     repo: "Templarian/MaterialDesign-SVG",
