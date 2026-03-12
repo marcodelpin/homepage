@@ -52,3 +52,10 @@ site*/
 
 # venv
 .venv/
+
+# temp artifacts
+.tmp/
+
+# playwright
+/test-results/
+/playwright-report/
