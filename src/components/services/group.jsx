@@ -15,6 +15,7 @@ export default function ServicesGroup({
   useEqualHeights,
   groupsInitiallyCollapsed,
   isSubgroup,
+  onEdit,
 }) {
   const panel = useRef();
 
@@ -85,6 +86,7 @@ export default function ServicesGroup({
                   layout={layout}
                   useEqualHeights={useEqualHeights}
                   header={layout?.header !== false}
+                  onEdit={onEdit}
                 />
                 {group.groups?.length > 0 && (
                   <div

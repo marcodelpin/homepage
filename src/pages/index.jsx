@@ -13,7 +13,7 @@ import dynamic from "next/dynamic";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Script from "next/script";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BiError } from "react-icons/bi";
 import useSWR, { SWRConfig } from "swr";
 import { ColorContext } from "utils/contexts/color";
@@ -24,6 +24,7 @@ import { ThemeContext } from "utils/contexts/theme";
 import { bookmarksResponse, servicesResponse, widgetsResponse } from "utils/config/api-response";
 import { getSettings } from "utils/config/config";
 import useWindowFocus from "utils/hooks/window-focus";
+import { getTopServices } from "utils/hooks/click-tracker";
 import createLogger from "utils/logger";
 import themes from "utils/styles/themes";
 
@@ -36,6 +37,10 @@ const ColorToggle = dynamic(() => import("components/toggles/color"), {
 });
 
 const Version = dynamic(() => import("components/version"), {
+  ssr: false,
+});
+
+const ServiceModal = dynamic(() => import("components/services/service-modal"), {
   ssr: false,
 });
 
@@ -221,7 +226,7 @@ function Home({ initialSettings }) {
     setSettings(initialSettings);
   }, [initialSettings, setSettings]);
 
-  const { data: services } = useSWR("/api/services");
+  const { data: services, mutate: mutateServices } = useSWR("/api/services");
   const { data: bookmarks } = useSWR("/api/bookmarks");
   const { data: widgets } = useSWR("/api/widgets");
 
@@ -247,6 +252,21 @@ function Home({ initialSettings }) {
   const [searching, setSearching] = useState(false);
   const [searchString, setSearchString] = useState("");
   const headerStyle = settings?.headerStyle || "underlined";
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editService, setEditService] = useState(null);
+  const [frequentlyUsed, setFrequentlyUsed] = useState([]);
+
+  useEffect(() => {
+    if (services) {
+      setFrequentlyUsed(getTopServices(getAllServices(services), 5));
+    }
+  }, [services]);
+
+  const handleEdit = useCallback((service) => {
+    setEditService(service);
+    setModalOpen(true);
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -340,6 +360,7 @@ function Home({ initialSettings }) {
                   disableCollapse={settings.disableCollapse}
                   useEqualHeights={settings.useEqualHeights}
                   groupsInitiallyCollapsed={settings.groupsInitiallyCollapsed}
+                  onEdit={handleEdit}
                 />
               ) : (
                 <BookmarksGroup
@@ -364,6 +385,7 @@ function Home({ initialSettings }) {
                 maxGroupColumns={settings.fiveColumns ? 5 : settings.maxGroupColumns}
                 disableCollapse={settings.disableCollapse}
                 groupsInitiallyCollapsed={settings.groupsInitiallyCollapsed}
+                onEdit={handleEdit}
               />
             ))}
           </div>
@@ -400,6 +422,7 @@ function Home({ initialSettings }) {
     settings.groupsInitiallyCollapsed,
     settings.bookmarksStyle,
     initialSettings.layout,
+    handleEdit,
   ]);
 
   return (
@@ -494,6 +517,20 @@ function Home({ initialSettings }) {
           </div>
         </div>
 
+        {frequentlyUsed.length > 0 && (
+          <div key="frequently-used" id="frequently-used" className="flex flex-wrap m-4 sm:m-8 sm:mt-4 items-start mb-2">
+            <ServicesGroup
+              group={{ name: "Frequently Used", services: frequentlyUsed, groups: [] }}
+              layout={undefined}
+              maxGroupColumns={settings.fiveColumns ? 5 : settings.maxGroupColumns}
+              disableCollapse={settings.disableCollapse}
+              useEqualHeights={settings.useEqualHeights}
+              groupsInitiallyCollapsed={false}
+              onEdit={handleEdit}
+            />
+          </div>
+        )}
+
         {servicesAndBookmarksGroups}
 
         <div id="footer" className="flex flex-col mt-auto p-8 w-full">
@@ -508,6 +545,22 @@ function Home({ initialSettings }) {
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => { setEditService(null); setModalOpen(true); }}
+        title="Add service"
+        className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center text-2xl transition-colors"
+      >
+        +
+      </button>
+
+      <ServiceModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSaved={() => { mutateServices(); setModalOpen(false); }}
+        editService={editService}
+      />
     </>
   );
 }
