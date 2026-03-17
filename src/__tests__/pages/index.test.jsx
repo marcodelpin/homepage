@@ -527,7 +527,9 @@ describe("pages/index Home behavior", () => {
       expect(state.widgetCalls.length).toBeGreaterThan(0);
     });
 
-    const rightAligned = state.widgetCalls.filter((c) => c.style?.isRightAligned).map((c) => c.widget.type);
+    // De-duplicate widget calls: React re-renders (e.g. useEffect for frequentlyUsed state)
+    // can cause the same widget to be recorded multiple times in the mock.
+    const rightAligned = [...new Set(state.widgetCalls.filter((c) => c.style?.isRightAligned).map((c) => c.widget.type))];
     expect(rightAligned).toEqual(["search"]);
   });
 });

@@ -96,8 +96,9 @@ describe("pages/api/services/icons", () => {
   });
 
   describe("selfhst source", () => {
-    it("prefixes values with sh-", async () => {
-      mockGitHubTree("selfhst/icons", "main", "svg/color", "sha2", ["grafana.svg"]);
+    it("prefixes values with sh- and uses svg subdir (not svg/color)", async () => {
+      // After fix 4f94886: selfhst icons moved from svg/color to svg
+      mockGitHubTree("selfhst/icons", "main", "svg", "sha2", ["grafana.svg"]);
 
       const res = createMockRes();
       await handler(makeReq({ source: "selfhst" }), res);
@@ -106,7 +107,7 @@ describe("pages/api/services/icons", () => {
       expect(res.body.icons[0]).toEqual({
         name: "grafana",
         value: "sh-grafana",
-        preview: "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/color/grafana.svg",
+        preview: "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/grafana.svg",
       });
     });
   });
