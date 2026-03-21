@@ -19,8 +19,9 @@ const { state, fs, yaml, config, Docker, dockerCfg, kubeCfg, kubeApi } = vi.hois
 
   const fs = {
     readFile: vi.fn(async (filePath) => {
-      if (String(filePath).endsWith("/services.yaml")) return "services";
-      if (String(filePath).endsWith("/docker.yaml")) return "docker";
+      const p = String(filePath);
+      if (p.endsWith("services.yaml")) return "services";
+      if (p.endsWith("docker.yaml")) return "docker";
       return "";
     }),
   };
