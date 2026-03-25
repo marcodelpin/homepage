@@ -199,7 +199,7 @@ export default function Item({ service, groupName, useEqualHeights, onEdit }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onEdit(service);
+              onEdit({ ...service, category: groupName });
             }}
             title={`Edit ${service.name}`}
             className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-theme-400 hover:text-theme-700 dark:hover:text-theme-200 z-20"
